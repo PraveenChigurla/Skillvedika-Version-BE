@@ -2,6 +2,36 @@
 
 use Laravel\Sanctum\Sanctum;
 
+// Get stateful domains from environment or use defaults
+// For Vercel: Set SANCTUM_STATEFUL_DOMAINS="localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,::1,your-app.vercel.app"
+$defaultDomains = 'localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,::1';
+$envDomains = env('SANCTUM_STATEFUL_DOMAINS', $defaultDomains);
+
+// Also add frontend URLs (extract domain from full URLs)
+$frontendUrls = env('FRONTEND_URLS', '');
+$frontendDomains = [];
+if ($frontendUrls) {
+    foreach (explode(',', $frontendUrls) as $url) {
+        $url = trim($url);
+        if ($url) {
+            $parsed = parse_url($url);
+            if (isset($parsed['host'])) {
+                $frontendDomains[] = $parsed['host'];
+                // Also add with port if specified
+                if (isset($parsed['port'])) {
+                    $frontendDomains[] = $parsed['host'] . ':' . $parsed['port'];
+                }
+            }
+        }
+    }
+}
+
+$allDomains = array_unique(array_merge(
+    explode(',', $envDomains),
+    $frontendDomains,
+    [Sanctum::currentApplicationUrlWithPort()]
+));
+
 return [
 
     /*
@@ -15,11 +45,7 @@ return [
     |
     */
 
-    'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', sprintf(
-        '%s%s',
-        'localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,::1',
-        Sanctum::currentApplicationUrlWithPort()
-    ))),
+    'stateful' => array_values(array_filter($allDomains)),
 
     /*
     |--------------------------------------------------------------------------

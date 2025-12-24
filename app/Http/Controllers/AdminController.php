@@ -12,9 +12,10 @@ class AdminController extends Controller
      */
     public function profile(Request $request)
     {
+        
         $admin = $request->user();
 
-        if (! $admin) {
+        if (!$admin) {
             Log::error('Admin profile: User not authenticated');
             return response()->json([
                 'status' => false,
