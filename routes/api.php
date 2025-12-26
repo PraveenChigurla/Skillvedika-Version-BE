@@ -242,6 +242,15 @@ Route::delete('/course-details/{id}', [CourseDetailsController::class, 'destroy'
 Route::post('/admin/login', [AdminAuthController::class, 'login'])->middleware('web');
 Route::post('/admin/forgot-password', [AdminPasswordController::class, 'forgot']);
 
+// Logout should work even if user is not authenticated (idempotent operation)
+// It will try to revoke tokens if authenticated, otherwise just clear the cookie
+Route::post('/admin/logout', [AdminAuthController::class, 'logout']);
+
+// Authentication verification endpoint - THE SOURCE OF TRUTH
+// Called by middleware on EVERY route access to verify current login status
+// Protected by auth:sanctum - returns 401 if not authenticated
+Route::get('/admin/me', [AdminController::class, 'me'])->middleware('auth:sanctum');
+
 Route::get('/courses', [CourseController::class, 'index']);
 Route::get('/courses/{id}', [CourseController::class, 'show']);
 // Submit review for a course
@@ -301,7 +310,6 @@ Route::get('/terms/all', [TermsAndConditionsController::class, 'index']);
 
 Route::middleware('auth:sanctum')->group(function () {
 
-    Route::post('/admin/logout', [AdminAuthController::class, 'logout']);
     Route::get('/admin/profile', [AdminController::class, 'profile']);
     Route::post('/admin/update', [AdminController::class, 'update']);
 

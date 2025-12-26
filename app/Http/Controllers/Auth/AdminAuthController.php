@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
+use Laravel\Sanctum\PersonalAccessToken;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
@@ -59,17 +61,18 @@ class AdminAuthController extends Controller
         // Set secure flag based on environment (true for HTTPS, false for localhost)
         $isSecure = config('app.env') === 'production' || $request->secure();
 
-        // print_r($isSecure);
-        // die();
+        // Set cookie (not encrypted because auth_token is in EncryptCookies $except array)
+        // This allows the token to be extracted and used as Bearer token if needed
+        // The cookie is still HTTP-only for security
         $cookie = cookie(
             'auth_token',
             $token,
             60 * 24 * 30, // minutes (30 days)
             '/',
             null, // domain (null = current domain)
-            true,  // secure (HTTPS only in production)
+            $isSecure,  // secure (HTTPS only in production, false for localhost)
             true,  // httpOnly
-            false, // raw
+            false, // raw (false is fine since we excluded it from encryption)
             'Lax'  // sameSite
         );
 
@@ -89,19 +92,46 @@ class AdminAuthController extends Controller
 
     public function logout(Request $request)
     {
-        $user = $request->user();
 
-        if ($user) {
-            // Revoke current token (recommended)
-            if (method_exists($user, 'currentAccessToken')) {
-                $request->user()->currentAccessToken()?->delete();
-            }
 
-            // OR revoke all tokens (optional)
-            if (method_exists($user, 'tokens')) {
-                $user->tokens()->delete();
+        $user = null;
+        $token = null;
+
+        // Try to authenticate if Bearer token is present
+        // This allows logout to work even without auth:sanctum middleware
+        if ($request->bearerToken()) {
+            $tokenValue = $request->bearerToken();
+            // Find the token in the database
+            $token = PersonalAccessToken::findToken($tokenValue);
+            if ($token) {
+                $user = $token->tokenable;
             }
         }
+
+        // Debug: Log authentication details in development
+        if (config('app.env') !== 'production') {
+            Log::debug('Logout request', [
+                'has_auth_header' => $request->hasHeader('Authorization'),
+                'auth_header' => $request->header('Authorization') ? 'present' : 'missing',
+                'has_cookie' => $request->hasCookie('auth_token'),
+                'user_authenticated' => $user ? 'yes' : 'no',
+                'user_id' => $user?->id,
+            ]);
+        }
+
+        if ($user && $token) {
+            // Delete the specific token used for this request
+            $token->delete();
+
+            // Optionally revoke all tokens for this user
+            // Uncomment if you want to log out from all devices
+            // if (method_exists($user, 'tokens')) {
+            //     $user->tokens()->delete();
+            // }
+        }
+
+
+        // Clear the auth_token cookie
 
         return response()
             ->json([

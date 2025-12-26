@@ -12,6 +12,6 @@ class EncryptCookies extends Middleware
      * @var array<int, string>
      */
     protected $except = [
-        //
+        'auth_token', // Don't encrypt auth_token so it can be used as Bearer token
     ];
 }

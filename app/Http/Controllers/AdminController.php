@@ -8,11 +8,68 @@ use Illuminate\Support\Facades\Log;
 class AdminController extends Controller
 {
     /**
+     * Verify current authentication status - THE SOURCE OF TRUTH
+     * This endpoint is called by middleware on EVERY route access
+     * Returns 200 ONLY if admin is currently authenticated and session is valid
+     * Returns 401 if not authenticated, session expired, or token revoked
+     */
+    public function me(Request $request)
+    {
+        // Debug logging in development
+        if (config('app.env') !== 'production') {
+            Log::debug('AdminController::me called', [
+                'has_auth_header' => $request->hasHeader('Authorization'),
+                'auth_header_preview' => $request->header('Authorization') ? substr($request->header('Authorization'), 0, 30) . '...' : 'missing',
+                'has_cookie' => $request->hasCookie('auth_token'),
+                'cookie_value_preview' => $request->cookie('auth_token') ? substr($request->cookie('auth_token'), 0, 30) . '...' : 'missing',
+                'bearer_token' => $request->bearerToken() ? substr($request->bearerToken(), 0, 30) . '...' : 'missing',
+            ]);
+        }
+
+        $admin = $request->user();
+
+        // NO ADMIN = NOT LOGGED IN (401)
+        if (!$admin) {
+            if (config('app.env') !== 'production') {
+                Log::debug('AdminController::me - User not authenticated');
+            }
+            return response()->json([
+                'logged_in' => false,
+                'message' => 'Unauthenticated.'
+            ], 401);
+        }
+
+        // Verify token is still valid (not revoked)
+        // For Sanctum, check if current token exists and is valid
+        if (method_exists($admin, 'currentAccessToken')) {
+            $token = $admin->currentAccessToken();
+            if (!$token) {
+                // Token was revoked or doesn't exist
+                return response()->json([
+                    'logged_in' => false,
+                    'message' => 'Session expired or revoked.'
+                ], 401);
+            }
+        }
+
+        // ADMIN EXISTS + TOKEN VALID = LOGGED IN (200)
+        return response()->json([
+            'logged_in' => true,
+            'admin' => [
+                'id' => $admin->id,
+                'name' => $admin->name,
+                'email' => $admin->email,
+                'avatar' => $admin->avatar ?? null,
+            ],
+        ], 200);
+    }
+
+    /**
      * Get authenticated admin's profile.
      */
     public function profile(Request $request)
     {
-        
+
         $admin = $request->user();
 
         if (!$admin) {
