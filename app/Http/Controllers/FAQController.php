@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Faq;
+use App\Models\FAQ;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class FaqController extends Controller
 {
@@ -11,14 +12,30 @@ class FaqController extends Controller
 
     public function index()
     {
-        return response()->json([
-            "faqs" => Faq::orderBy("id", "DESC")->get()
-        ]);
+        try {
+            $faqs = FAQ::orderBy("id", "DESC")->get();
+            return response()->json([
+                "faqs" => $faqs
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('FAQController::index error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            // Always return error details for debugging (can be restricted in production later)
+            return response()->json([
+                "message" => "Server Error",
+                "error" => $e->getMessage(),
+                "file" => $e->getFile(),
+                "line" => $e->getLine(),
+            ], 500);
+        }
     }
 
     public function show($id)
     {
-        $faq = Faq::find($id);
+        $faq = FAQ::find($id);
 
         if (!$faq) {
             return response()->json(["message" => self::ERROR_FAQ_NOT_FOUND], 404);
@@ -35,7 +52,7 @@ class FaqController extends Controller
             "show" => "required|boolean"
         ]);
 
-        $faq = Faq::create($request->all());
+        $faq = FAQ::create($request->all());
 
         return response()->json([
             "message" => "FAQ created successfully",
@@ -45,7 +62,7 @@ class FaqController extends Controller
 
     public function update(Request $request, $id)
     {
-        $faq = Faq::find($id);
+        $faq = FAQ::find($id);
 
         if (!$faq) {
             return response()->json(["message" => self::ERROR_FAQ_NOT_FOUND], 404);
@@ -67,7 +84,7 @@ class FaqController extends Controller
 
     public function destroy($id)
     {
-        $faq = Faq::find($id);
+        $faq = FAQ::find($id);
 
         if (!$faq) {
             return response()->json(["message" => self::ERROR_FAQ_NOT_FOUND], 404);
