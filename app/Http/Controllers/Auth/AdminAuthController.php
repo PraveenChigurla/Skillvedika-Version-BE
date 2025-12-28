@@ -76,10 +76,11 @@ class AdminAuthController extends Controller
             'Lax'  // sameSite
         );
 
-        // 8. Return sanitized response
+        // 8. Return sanitized response with token for Bearer authentication
         return response()
             ->json([
                 'message' => 'Login successful',
+                'token' => $token, // Return token for Bearer authentication
                 'user' => [
                     'id' => $user->id,
                     'name' => $user->name,

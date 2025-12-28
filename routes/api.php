@@ -205,7 +205,7 @@ Route::get('/leads/export', [EnrollmentController::class, 'export']);
 Route::get('/leads/{id}', [EnrollmentController::class, 'show']);
 // Public enrollment form submission - frontend uses /enroll
 Route::post('/enroll', [EnrollmentController::class, 'store']);
-Route::put('/leads/{id}/status', [EnrollmentController::class, 'updateStatus']);
+// Note: PUT /leads/{id}/status is moved to protected routes (auth:sanctum) below
 Route::delete('/leads/{id}', [EnrollmentController::class, 'destroy']);
 Route::post('/leads/delete-multiple', [EnrollmentController::class, 'deleteMultiple']);
 

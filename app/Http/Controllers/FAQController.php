@@ -18,7 +18,7 @@ class FaqController extends Controller
                 "faqs" => $faqs
             ]);
         } catch (\Exception $e) {
-            \Log::error('FAQController::index error', [
+            Log::error('FAQController::index error', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
