@@ -40,6 +40,7 @@ class Kernel extends HttpKernel
         ],
 
         'api' => [
+            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             // Use the framework CORS handler configured in config/cors.php.
             // DevCors was a temporary dev-only middleware; remove it so
             // HandleCors controls preflight and response headers.
@@ -71,7 +72,7 @@ class Kernel extends HttpKernel
 
     /**
      * The application's route middleware.
-     * 
+     *
      * @var array<string, class-string|string>
      */
     protected $routeMiddleware = [

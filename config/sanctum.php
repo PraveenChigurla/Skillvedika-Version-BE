@@ -4,7 +4,7 @@ use Laravel\Sanctum\Sanctum;
 
 // Get stateful domains from environment or use defaults
 // For Vercel: Set SANCTUM_STATEFUL_DOMAINS="localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,::1,your-app.vercel.app"
-$defaultDomains = 'localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,::1';
+$defaultDomains = 'localhost,localhost:3000,127.0.0.1,127.0.0.1:8000,::1,http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001,http://localhost:5173,http://127.0.0.1:5173,http://0.0.0.0:3000';
 $envDomains = env('SANCTUM_STATEFUL_DOMAINS', $defaultDomains);
 
 // Also add frontend URLs (extract domain from full URLs)

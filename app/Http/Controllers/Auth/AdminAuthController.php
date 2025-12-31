@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\PersonalAccessToken;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\RateLimiter;
@@ -15,13 +16,16 @@ class AdminAuthController extends Controller
 {
     public function login(Request $request)
     {
-        // 1. Validate request (auto throws 422 on failure)
+        Log::debug('Login request', [
+            'request' => $request->all(),
+        ]);
+        // 1. Validate request
         $credentials = $request->validate([
             'email'    => ['required', 'email'],
             'password' => ['required', 'string'],
         ]);
 
-        // 2. Rate limiting (anti brute-force)
+        // 2. Rate limiting
         $throttleKey = Str::lower($credentials['email']) . '|' . $request->ip();
 
         if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
@@ -30,10 +34,10 @@ class AdminAuthController extends Controller
             ]);
         }
 
-        // 3. Attempt authentication using Admin model
+        // 3. Fetch admin
         $admin = \App\Models\Admin::where('email', $credentials['email'])->first();
 
-        if (!$admin || !\Illuminate\Support\Facades\Hash::check($credentials['password'], $admin->password)) {
+        if (!$admin || !Hash::check($credentials['password'], $admin->password)) {
             RateLimiter::hit($throttleKey, 60);
 
             throw ValidationException::withMessages([
@@ -43,52 +47,54 @@ class AdminAuthController extends Controller
 
         RateLimiter::clear($throttleKey);
 
-        // 4. Authenticated user
-        $user = $admin;
+        // 4. Create Sanctum token for API authentication
+        // $token = $admin->createToken('api-token', ['*'])->plainTextToken;
 
-        // 5. (Optional) Revoke old tokens
-        if (method_exists($user, 'tokens')) {
-            $user->tokens()->delete();
-        }
+        // 5. Log the admin in using Laravel Auth (SESSION) for web routes
+        Auth::guard('web')->login($admin);
 
-        // 6. Create token (name = device/browser)
-        $token = $user->createToken(
-            $request->userAgent() ?? 'api-token'
-        )->plainTextToken;
+        // 6. Regenerate session ONCE (security)
+        $request->session()->regenerate();
 
+        // 7. Return user data with token set in HTTP-only cookie
+        // For cross-origin cookies to work, we need to set domain explicitly
+        // In development, use null domain and sameSite: 'lax'
+        // In production, use sameSite: 'none' and secure: true
+        // $isProduction = config('app.env') === 'production';
+        // $cookie = cookie(
+        //     'auth_token',
+        //     $token,
+        //     60 * 24 * 7, // 7 days
+        //     '/', // path
+        //     null, // domain (null = current domain, works for same-origin)
+        //     $isProduction, // secure: true in production only (required for sameSite: 'none')
+        //     true, // httpOnly
+        //     false, // raw
+        //     $isProduction ? 'none' : 'lax' // sameSite: 'none' for cross-origin in production, 'lax' for dev
+        // );
 
-        // 7. Secure HTTP-only cookie
-        // Set secure flag based on environment (true for HTTPS, false for localhost)
-        $isSecure = config('app.env') === 'production' || $request->secure();
+        // Debug logging
+        // if (config('app.env') !== 'production') {
+        //     Log::debug('Login cookie set', [
+        //         'cookie_name' => 'auth_token',
+        //         'token_length' => strlen($token),
+        //         'domain' => null,
+        //         'path' => '/',
+        //         'secure' => $isProduction,
+        //         'httpOnly' => true,
+        //         'sameSite' => $isProduction ? 'none' : 'lax',
+        //     ]);
+        // }
 
-        // Set cookie (not encrypted because auth_token is in EncryptCookies $except array)
-        // This allows the token to be extracted and used as Bearer token if needed
-        // The cookie is still HTTP-only for security
-        $cookie = cookie(
-            'auth_token',
-            $token,
-            60 * 24 * 30, // minutes (30 days)
-            '/',
-            null, // domain (null = current domain)
-            $isSecure,  // secure (HTTPS only in production, false for localhost)
-            true,  // httpOnly
-            false, // raw (false is fine since we excluded it from encryption)
-            'Lax'  // sameSite
-        );
-
-        // 8. Return sanitized response with token for Bearer authentication
-        return response()
-            ->json([
-                'message' => 'Login successful',
-                'token' => $token, // Return token for Bearer authentication
-                'user' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'avatar' => $user->avatar ?? null,
-                ],
-            ], 200)
-            ->withCookie($cookie);
+        return response()->json([
+            'message' => 'Login successful',
+            'user' => [
+                'id' => $admin->id,
+                'name' => $admin->name,
+                'email' => $admin->email,
+                'avatar' => $admin->avatar ?? null,
+            ]
+        ], 200);
     }
 
     public function logout(Request $request)

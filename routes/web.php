@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -15,4 +16,11 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
+});
+
+Route::get('/_debug-auth', function () {
+    session(['test' => 'ok']);
+    return response()->json([
+        'session_id' => session()->getId(),
+    ]);
 });

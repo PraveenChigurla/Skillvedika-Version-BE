@@ -17,12 +17,22 @@ class AdminController extends Controller
     {
         // Debug logging in development
         if (config('app.env') !== 'production') {
+            $allCookies = $request->header('Cookie', '');
+            $cookieNames = [];
+            if ($allCookies) {
+                $cookieNames = array_map(function($cookie) {
+                    return explode('=', trim($cookie))[0];
+                }, explode(';', $allCookies));
+            }
+
             Log::debug('AdminController::me called', [
                 'has_auth_header' => $request->hasHeader('Authorization'),
-                'auth_header_preview' => $request->header('Authorization') ? substr($request->header('Authorization'), 0, 30) . '...' : 'missing',
-                'has_cookie' => $request->hasCookie('auth_token'),
-                'cookie_value_preview' => $request->cookie('auth_token') ? substr($request->cookie('auth_token'), 0, 30) . '...' : 'missing',
-                'bearer_token' => $request->bearerToken() ? substr($request->bearerToken(), 0, 30) . '...' : 'missing',
+                'has_cookie_header' => !empty($allCookies),
+                'cookie_names' => $cookieNames,
+                'has_laravel_session' => $request->hasCookie(config('session.cookie')),
+                'has_auth_token_cookie' => $request->hasCookie('auth_token'),
+                'session_id' => $request->session()->getId() ?? 'no session',
+                'user_from_request' => $request->user() ? 'authenticated' : 'not authenticated',
             ]);
         }
 
@@ -31,7 +41,10 @@ class AdminController extends Controller
         // NO ADMIN = NOT LOGGED IN (401)
         if (!$admin) {
             if (config('app.env') !== 'production') {
-                Log::debug('AdminController::me - User not authenticated');
+                Log::debug('AdminController::me - User not authenticated', [
+                    'session_exists' => $request->session()->getId() !== null,
+                    'session_data' => $request->session()->all(),
+                ]);
             }
             return response()->json([
                 'logged_in' => false,
@@ -39,12 +52,15 @@ class AdminController extends Controller
             ], 401);
         }
 
-        // Verify token is still valid (not revoked)
-        // For Sanctum, check if current token exists and is valid
+        // For session-based auth (Sanctum SPA mode), we don't need to check for token
+        // The session authentication is sufficient
+        // Only check token if it exists (for Bearer token auth fallback)
         if (method_exists($admin, 'currentAccessToken')) {
             $token = $admin->currentAccessToken();
-            if (!$token) {
-                // Token was revoked or doesn't exist
+            // If using session auth, token might be null - that's OK
+            // Only fail if we're using token auth and token is missing
+            if ($request->bearerToken() && !$token) {
+                // Bearer token was provided but is invalid
                 return response()->json([
                     'logged_in' => false,
                     'message' => 'Session expired or revoked.'
