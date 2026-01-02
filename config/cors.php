@@ -11,6 +11,7 @@ return [
         'http://localhost:3001',
         'https://skillvedika.in',
         'https://admin.skillvedika.in',
+        'https://ownerTech.skillvedika.in',
     ],
 
     'allowed_headers' => ['*'],
