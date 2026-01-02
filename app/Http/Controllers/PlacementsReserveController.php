@@ -77,54 +77,54 @@ class PlacementsReserveController extends Controller
     public function store(Request $request)
     {
         try {
-            // Validate the primary fields. Database columns are named reserve_block*
-            $request->validate([
-                "placements_title" => "nullable|array",
-                "placements_subtitle" => "nullable|string",
-                "placement_images" => "nullable|array",
+        // Validate the primary fields. Database columns are named reserve_block*
+        $request->validate([
+            "placements_title" => "nullable|array",
+            "placements_subtitle" => "nullable|string",
+            "placement_images" => "nullable|array",
 
-                "reserve_title" => "nullable|array",
-                "reserve_subtitle" => "nullable|string",
-                // frontend sends reserve_block1/2/3 as arrays [value,label]
-                "reserve_block1" => "nullable",
-                "reserve_block2" => "nullable",
-                "reserve_block3" => "nullable",
-                "reserve_button_name" => "nullable|string",
-                "reserve_button_link" => "nullable|string",
-            ]);
+            "reserve_title" => "nullable|array",
+            "reserve_subtitle" => "nullable|string",
+            // frontend sends reserve_block1/2/3 as arrays [value,label]
+            "reserve_block1" => "nullable",
+            "reserve_block2" => "nullable",
+            "reserve_block3" => "nullable",
+            "reserve_button_name" => "nullable|string",
+            "reserve_button_link" => "nullable|string",
+        ]);
 
-            // Build payload matching DB column names. For reserve_block columns
-            // they are stored as strings, so if frontend sent arrays
-            // encode them as JSON strings before saving.
-            $payload = [];
-            $payload['placements_title'] = $request->input('placements_title');
-            $payload['placements_subtitle'] = $request->input('placements_subtitle');
-            $payload['placement_images'] = $request->input('placement_images');
+        // Build payload matching DB column names. For reserve_block columns
+        // they are stored as strings, so if frontend sent arrays
+        // encode them as JSON strings before saving.
+        $payload = [];
+        $payload['placements_title'] = $request->input('placements_title');
+        $payload['placements_subtitle'] = $request->input('placements_subtitle');
+        $payload['placement_images'] = $request->input('placement_images');
 
-            $payload['reserve_title'] = $request->input('reserve_title');
-            $payload['reserve_subtitle'] = $request->input('reserve_subtitle');
+        $payload['reserve_title'] = $request->input('reserve_title');
+        $payload['reserve_subtitle'] = $request->input('reserve_subtitle');
 
-            foreach ([1,2,3] as $n) {
-                $keyIn = "reserve_block{$n}";
-                $val = $request->input($keyIn);
-                if (is_array($val)) {
-                    $payload[$keyIn] = json_encode($val);
-                } elseif (!is_null($val)) {
-                    $payload[$keyIn] = $val;
-                } else {
-                    $payload[$keyIn] = null;
-                }
+        foreach ([1,2,3] as $n) {
+            $keyIn = "reserve_block{$n}";
+            $val = $request->input($keyIn);
+            if (is_array($val)) {
+                $payload[$keyIn] = json_encode($val);
+            } elseif (!is_null($val)) {
+                $payload[$keyIn] = $val;
+            } else {
+                $payload[$keyIn] = null;
             }
+        }
 
-            $payload['reserve_button_name'] = $request->input('reserve_button_name');
-            $payload['reserve_button_link'] = $request->input('reserve_button_link');
+        $payload['reserve_button_name'] = $request->input('reserve_button_name');
+        $payload['reserve_button_link'] = $request->input('reserve_button_link');
 
-            // Ensure JSON/array fields are stored as JSON strings to avoid query grammar issues
-            foreach (['placements_title','placement_images','reserve_title'] as $k) {
-                if (array_key_exists($k, $payload) && is_array($payload[$k])) {
-                    $payload[$k] = json_encode($payload[$k]);
-                }
+        // Ensure JSON/array fields are stored as JSON strings to avoid query grammar issues
+        foreach (['placements_title','placement_images','reserve_title'] as $k) {
+            if (array_key_exists($k, $payload) && is_array($payload[$k])) {
+                $payload[$k] = json_encode($payload[$k]);
             }
+        }
 
             $record = CourseDetailsPageContentPlacementsAndReserve::create($payload);
 
@@ -147,28 +147,28 @@ class PlacementsReserveController extends Controller
     public function update(Request $request, $id)
     {
         try {
-            $item = CourseDetailsPageContentPlacementsAndReserve::findOrFail($id);
+        $item = CourseDetailsPageContentPlacementsAndReserve::findOrFail($id);
 
-            // Map incoming reserve_block* (encode arrays to JSON strings)
-            $input = $request->all();
-            // Ensure JSON/array fields are encoded to strings for DB columns
-            foreach (['placements_title','placement_images','reserve_title'] as $k) {
-                if (array_key_exists($k, $input) && is_array($input[$k])) {
-                    $input[$k] = json_encode($input[$k]);
+        // Map incoming reserve_block* (encode arrays to JSON strings)
+        $input = $request->all();
+        // Ensure JSON/array fields are encoded to strings for DB columns
+        foreach (['placements_title','placement_images','reserve_title'] as $k) {
+            if (array_key_exists($k, $input) && is_array($input[$k])) {
+                $input[$k] = json_encode($input[$k]);
+            }
+        }
+        foreach ([1,2,3] as $n) {
+            $keyIn = "reserve_block{$n}";
+            if (array_key_exists($keyIn, $input)) {
+                $val = $input[$keyIn];
+                if (is_array($val)) {
+                    $input[$keyIn] = json_encode($val);
+                } else {
+                    $input[$keyIn] = $val;
                 }
             }
-            foreach ([1,2,3] as $n) {
-                $keyIn = "reserve_block{$n}";
-                if (array_key_exists($keyIn, $input)) {
-                    $val = $input[$keyIn];
-                    if (is_array($val)) {
-                        $input[$keyIn] = json_encode($val);
-                    } else {
-                        $input[$keyIn] = $val;
-                    }
-                }
-            }
-            $item->update($input);
+        }
+        $item->update($input);
 
             return response()->json([
                 'message' => 'Record updated successfully',
