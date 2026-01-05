@@ -8,7 +8,7 @@ return [
     |--------------------------------------------------------------------------
     */
     'defaults' => [
-        'guard' => 'admin',
+        'guard' => 'web',              // 🔥 MUST BE web
         'passwords' => 'admins',
     ],
 
@@ -19,15 +19,21 @@ return [
     */
     'guards' => [
 
-        // Admin SPA login (Sanctum + session)
+        // REQUIRED for Sanctum SPA
+        'web' => [
+            'driver' => 'session',
+            'provider' => 'admins',
+        ],
+
+        // Admin guard (optional explicit use)
         'admin' => [
             'driver' => 'session',
             'provider' => 'admins',
         ],
 
-        // REQUIRED by Sanctum internally (DO NOT REMOVE)
-        'web' => [
-            'driver' => 'session',
+        // REQUIRED by Sanctum internally
+        'sanctum' => [
+            'driver' => 'sanctum',
             'provider' => 'admins',
         ],
     ],
@@ -38,7 +44,10 @@ return [
     |--------------------------------------------------------------------------
     */
     'providers' => [
-
+        'users' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Admin::class,
+        ],
         'admins' => [
             'driver' => 'eloquent',
             'model' => App\Models\Admin::class,

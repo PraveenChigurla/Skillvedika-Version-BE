@@ -17,6 +17,8 @@ class VerifyCsrfToken extends Middleware
         // Exclude GET requests for leads (pagination/filters) - GET requests don't need CSRF anyway
         'api/leads',
         'api/leads/*',
+        'api/enroll',
         'api/admin/logout',
+        'sanctum/csrf-cookie',
     ];
 }

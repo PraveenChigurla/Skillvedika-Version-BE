@@ -155,7 +155,7 @@ return [
     |
     */
 
-    'domain' => env('SESSION_DOMAIN', 'localhost'),
+    'domain' => env('SESSION_DOMAIN', 'null'),
 
     /*
     |--------------------------------------------------------------------------
@@ -168,7 +168,7 @@ return [
     |
     */
 
-    'secure' => false,
+    'secure' => env('SESSION_SECURE_COOKIE', false),
 
     /*
     |--------------------------------------------------------------------------

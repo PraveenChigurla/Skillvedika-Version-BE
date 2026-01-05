@@ -66,6 +66,8 @@ Route::post('/admin/forgot-password', [AdminPasswordController::class, 'forgot']
 Route::get('/categories', [CategoryController::class, 'index']);
 Route::get('/skills', [SkillController::class, 'index']);
 Route::get('/popular-tags', [PopularTagController::class, 'index']);
+
+
 Route::get('/blog-categories', [BlogCategoryController::class, 'index']);
 
 Route::get('/settings', [SettingsController::class, 'get']);
@@ -79,6 +81,17 @@ Route::get('/course-details/job-assistance/{id}', [CourseDetailsJobAssistanceCon
 
 Route::get('/live-demo', [LiveDemoController::class, 'show']);
 Route::post('/live-demo', [LiveDemoController::class, 'store']); // Public form submission
+
+/*
+    |--------------------------------------------------------------------------
+    | Form Details CRUD
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/form-details', [FormDetailsController::class, 'index']);
+    Route::get('/form-details/{id}', [FormDetailsController::class, 'show']);
+    Route::post('/form-details', [FormDetailsController::class, 'store']);
+    Route::put('/form-details/{id}', [FormDetailsController::class, 'update']);
+    Route::delete('/form-details/{id}', [FormDetailsController::class, 'destroy']);
 
 Route::get('/job-assistance', [JobAssistanceProgramController::class, 'index']);
 
@@ -137,9 +150,16 @@ Route::options('/footer-settings', function () { return response('', 200); });
 |--------------------------------------------------------------------------
 */
 Route::post('/admin/logout', [AdminAuthController::class, 'logout'])->middleware('web'); // Idempotent - works even if not authenticated
+Route::middleware('auth:sanctum')->get('/admin/me', function () {
+    return auth()->user();
+});
+
+Route::middleware(['auth:sanctum'])->get('/test-auth', function () {
+    return response()->json(auth()->user());
+});
 
 Route::middleware(['auth:sanctum'])->group(function () {
-    Route::get('/admin/me', [AdminController::class, 'me']);
+
 
     /*
     |--------------------------------------------------------------------------
@@ -287,16 +307,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/leads/delete-multiple', [EnrollmentController::class, 'deleteMultiple']);
     Route::put('/leads/{id}/status', [EnrollmentController::class, 'updateStatus']);
 
-    /*
-    |--------------------------------------------------------------------------
-    | Form Details CRUD
-    |--------------------------------------------------------------------------
-    */
-    Route::get('/form-details', [FormDetailsController::class, 'index']);
-    Route::get('/form-details/{id}', [FormDetailsController::class, 'show']);
-    Route::post('/form-details', [FormDetailsController::class, 'store']);
-    Route::put('/form-details/{id}', [FormDetailsController::class, 'update']);
-    Route::delete('/form-details/{id}', [FormDetailsController::class, 'destroy']);
+
 
     /*
     |--------------------------------------------------------------------------

@@ -10,35 +10,29 @@ class AdminAuthController extends Controller
 {
     public function login(Request $request)
     {
-        // 1️⃣ Validate request
         $credentials = $request->validate([
-            'email'    => 'required|email',
-            'password' => 'required|string',
+            'email' => 'required|email',
+            'password' => 'required',
         ]);
 
-        // 2️⃣ Authenticate using ADMIN guard (IMPORTANT)
-        if (!Auth::guard('admin')->attempt($credentials)) {
-            return response()->json([
-                'message' => 'Invalid credentials'
-            ], 401);
+        if (!Auth::attempt($credentials)) {
+            return response()->json(['message' => 'Invalid credentials'], 401);
         }
 
-        // 3️⃣ Regenerate session (prevents session fixation)
+        // REQUIRED for session
         $request->session()->regenerate();
 
-        $admin = Auth::guard('admin')->user();
+        Auth::guard('web')->user();
 
-        // 4️⃣ Return safe user payload
         return response()->json([
             'message' => 'Login successful',
             'user' => [
-                'id'     => $admin->id,
-                'name'   => $admin->name,
-                'email'  => $admin->email,
-                'avatar' => $admin->avatar ?? null,
+                'id' => auth()->user()->id,
+                'email' => auth()->user()->email,
             ],
-        ], 200);
+        ]);
     }
+
 
     public function logout(Request $request)
     {
