@@ -12,3 +12,5 @@ return [
     'allowed_headers' => ['*'],
     'supports_credentials' => true,
 ];
+
+
