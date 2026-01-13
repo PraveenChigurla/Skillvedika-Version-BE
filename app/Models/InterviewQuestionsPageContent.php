@@ -5,16 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class TermsAndConditions extends Model
+class InterviewQuestionsPageContent extends Model
 {
     use HasFactory;
 
-    protected $table = 'terms_and_conditions';
+    protected $table = 'interview_questions_page_contents';
 
     protected $fillable = [
-        'title',
-        'type',
-        'content',
-        'last_updated_on',
+        'hero_title',
+        'hero_description',
     ];
 }
+

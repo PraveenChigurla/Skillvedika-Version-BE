@@ -10,6 +10,7 @@ return new class extends Migration {
         Schema::create('seos', function (Blueprint $table) {
             $table->id();
 
+            $table->string('slug')->unique();
             $table->string('page_name');                     // Home Page, Blog Page etc.
             $table->string('meta_title')->nullable();        // SEO Title
             $table->longText('meta_description')->nullable();// SEO Description

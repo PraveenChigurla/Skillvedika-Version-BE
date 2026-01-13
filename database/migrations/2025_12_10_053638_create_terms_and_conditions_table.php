@@ -11,7 +11,8 @@ return new class extends Migration
         Schema::create('terms_and_conditions', function (Blueprint $table) {
             $table->id();
             $table->string('title')->nullable();
-            $table->longText('content')->nullable(); // TipTap HTML content
+            $table->enum('type', ['student', 'instructor', 'privacy'])->index();
+            $table->longText('content');
             $table->timestamp('last_updated_on')->nullable();
             $table->timestamps();
         });

@@ -12,6 +12,8 @@ class CoursePageContent extends Model
         'heading',
         'subheading',
         'sidebar_heading',
+        'testimonials_heading',
+        'testimonials_subheading',
     ];
 
     // ❗ REMOVE ALL CASTS — These fields are NOT JSON

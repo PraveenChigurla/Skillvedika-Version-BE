@@ -30,12 +30,13 @@ use App\Http\Controllers\FaqController;
 use App\Http\Controllers\HrFaqController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\EnrollmentController;
+use App\Http\Controllers\TestimonialController;
 
 // Header settings controller
 use App\Http\Controllers\HeaderSettingController;
 
-// Terms & Conditions Controller
-use App\Http\Controllers\TermsAndConditionsController;
+// Legal Documents Controller
+use App\Http\Controllers\LegalDocumentsController;
 
 use App\Http\Controllers\FooterSettingsController;
 use App\Http\Controllers\FormDetailsController;
@@ -43,6 +44,12 @@ use App\Http\Controllers\JobAssistanceProgramController;
 use App\Http\Controllers\PlacementsReserveController;
 use App\Http\Controllers\SearchController;
 use Illuminate\Support\Facades\Auth;
+
+use App\Http\Controllers\BecomeInstructorContentController;
+use App\Http\Controllers\InstructorApplicationController;
+use App\Http\Controllers\InterviewQuestionCategoryController;
+use App\Http\Controllers\InterviewQuestionController;
+use App\Http\Controllers\InterviewQuestionsPageContentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -69,6 +76,7 @@ Route::get('/popular-tags', [PopularTagController::class, 'index']);
 
 
 Route::get('/blog-categories', [BlogCategoryController::class, 'index']);
+Route::get('/interview-question-categories', [InterviewQuestionCategoryController::class, 'index']);
 
 Route::get('/settings', [SettingsController::class, 'get']);
 Route::get('/header-settings', [HeaderSettingController::class, 'index']);
@@ -102,8 +110,9 @@ Route::get('/on-job-support-page', [OnJobSupportContentController::class, 'show'
 Route::get('/corporate-training', [CorporateTrainingController::class, 'show']);
 Route::get('/about-page', [AboutPageController::class, 'show']);
 Route::get('/contact-page', [ContactPageController::class, 'index']);
-Route::get('/seo', [SeoController::class, 'index']);
-Route::get('/seo/{id}', [SeoController::class, 'show']);
+Route::get('/interview-questions-page', [InterviewQuestionsPageContentController::class, 'show']);
+Route::get('/seo', [SeoController::class, 'index']); // GET /api/seo or GET /api/seo?slug=:slug
+Route::get('/seo/{slug}', [SeoController::class, 'show']); // GET /api/seo/:slug
 Route::get('/blog-page', [BlogPageController::class, 'index']);
 
 // Public enrollment form submission
@@ -122,6 +131,14 @@ Route::get('/course-details/{id}', [CourseDetailsController::class, 'show']);
 Route::get('/blogs', [BlogController::class, 'index']);
 Route::get('/blogs/{id}', [BlogController::class, 'show']);
 
+// Public become instructor routes
+Route::get('/become-instructor', [BecomeInstructorContentController::class, 'show']);
+Route::post('/become-instructor', [BecomeInstructorContentController::class, 'store']);
+
+// Public instructor applications routes
+Route::post('/instructor-applications', [InstructorApplicationController::class, 'store']); // Public form submission
+
+
 // Public Placements Reserve route (for website frontend)
 Route::get('/placements-reserve', [PlacementsReserveController::class, 'index']);
 
@@ -129,10 +146,14 @@ Route::get('/placements-reserve', [PlacementsReserveController::class, 'index'])
 Route::get('/faqs', [FaqController::class, 'index']);
 Route::get('/faqs/{id}', [FaqController::class, 'show']);
 
-// Public Terms & Conditions routes
-Route::get('/terms-and-conditions', [TermsAndConditionsController::class, 'show']);
-Route::get('/terms', [TermsAndConditionsController::class, 'show']); // Alias
-Route::get('/terms/all', [TermsAndConditionsController::class, 'index']);
+// Public Testimonials routes (read-only)
+Route::get('/testimonials', [App\Http\Controllers\TestimonialController::class, 'index']);
+
+
+
+// Public Legal Documents routes (unified API for student, instructor, privacy)
+Route::get('/legal/{type}', [LegalDocumentsController::class, 'show']);
+Route::get('/legal/{type}/all', [LegalDocumentsController::class, 'index']);
 
 // Search suggestions
 Route::get('/search/suggestions', [SearchController::class, 'suggestions']);
@@ -168,7 +189,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
     */
     Route::get('/admin/profile', [AdminController::class, 'profile']);
     Route::post('/admin/update', [AdminController::class, 'update']);
-    // Route::post('/admin/logout', [AdminAuthController::class, 'logout']);
 
     /*
     |--------------------------------------------------------------------------
@@ -275,14 +295,23 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     /*
     |--------------------------------------------------------------------------
-    | SEO Management CRUD
+    | Interview Questions Page Content CRUD
+    |--------------------------------------------------------------------------
+    */
+    Route::post('/interview-questions-page', [InterviewQuestionsPageContentController::class, 'store']);
+    Route::put('/interview-questions-page/{id?}', [InterviewQuestionsPageContentController::class, 'update']);
+    Route::patch('/interview-questions-page/{id?}', [InterviewQuestionsPageContentController::class, 'update']);
+    Route::delete('/interview-questions-page/{id?}', [InterviewQuestionsPageContentController::class, 'destroy']);
+
+    /*
+    |--------------------------------------------------------------------------
+    | SEO Management CRUD (Slug-based)
     |--------------------------------------------------------------------------
     */
     Route::post('/seo', [SeoController::class, 'store']);
-    Route::put('/seo/{id}', [SeoController::class, 'update']);
-    Route::patch('/seo/{id}', [SeoController::class, 'update']);
-    Route::delete('/seo/{id}', [SeoController::class, 'destroy']);
-    Route::post('/seo/{id}', [SeoController::class, 'update']); // Legacy alias
+    Route::patch('/seo/{slug}', [SeoController::class, 'update']); // PATCH for partial updates
+    Route::put('/seo/{slug}', [SeoController::class, 'update']); // PUT for full updates (same handler)
+    Route::delete('/seo/{slug}', [SeoController::class, 'destroy']);
 
     /*
     |--------------------------------------------------------------------------
@@ -416,12 +445,62 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     /*
     |--------------------------------------------------------------------------
-    | Terms & Conditions CRUD
+    | Testimonials CRUD (Admin Panel)
     |--------------------------------------------------------------------------
     */
-    Route::post('/terms-and-conditions', [TermsAndConditionsController::class, 'store']);
-    Route::post('/terms', [TermsAndConditionsController::class, 'store']); // Alias
-    Route::put('/terms/{id?}', [TermsAndConditionsController::class, 'update']);
-    Route::patch('/terms/{id?}', [TermsAndConditionsController::class, 'patch']);
-    Route::delete('/terms/{id}', [TermsAndConditionsController::class, 'destroy']);
+    Route::prefix('admin')->group(function () {
+        Route::get('/testimonials', [TestimonialController::class, 'adminIndex']);
+        Route::post('/testimonials', [TestimonialController::class, 'store']);
+        Route::put('/testimonials/{id}', [TestimonialController::class, 'update']);
+        Route::delete('/testimonials/{id}', [TestimonialController::class, 'destroy']);
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Become Instructor Content CRUD
+    |--------------------------------------------------------------------------
+    */
+    Route::put('/become-instructor/{id?}', [BecomeInstructorContentController::class, 'update']);
+    Route::patch('/become-instructor/{id?}', [BecomeInstructorContentController::class, 'update']);
+    Route::delete('/become-instructor/{id?}', [BecomeInstructorContentController::class, 'destroy']);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Instructor Applications Management (Admin Only)
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/instructor-applications', [InstructorApplicationController::class, 'index']);
+    Route::get('/instructor-applications/{id}', [InstructorApplicationController::class, 'show']);
+    Route::delete('/instructor-applications/{id}', [InstructorApplicationController::class, 'destroy']);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Legal Documents CRUD (unified API for student, instructor, privacy)
+    |--------------------------------------------------------------------------
+    */
+    Route::prefix('legal')->group(function () {
+        Route::post('/', [LegalDocumentsController::class, 'store']);
+        Route::put('{id}', [LegalDocumentsController::class, 'update']);
+        Route::delete('{id}', [LegalDocumentsController::class, 'destroy']);
+    });
+
+    /*
+    |--------------------------------------------------------------------------
+    | Interview Question Categories CRUD
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/interview-question-categories-admin', [InterviewQuestionCategoryController::class, 'indexAdmin']);
+    Route::get('/interview-question-categories/{id}/questions', [InterviewQuestionCategoryController::class, 'getQuestions']);
+    Route::post('/interview-question-categories', [InterviewQuestionCategoryController::class, 'store']);
+    Route::put('/interview-question-categories/{id}', [InterviewQuestionCategoryController::class, 'update']);
+    Route::delete('/interview-question-categories/{id}', [InterviewQuestionCategoryController::class, 'destroy']);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Interview Questions CRUD
+    |--------------------------------------------------------------------------
+    */
+    Route::post('/interview-questions', [InterviewQuestionController::class, 'store']);
+    Route::put('/interview-questions/{id}', [InterviewQuestionController::class, 'update']);
+    Route::delete('/interview-questions/{id}', [InterviewQuestionController::class, 'destroy']);
 });

@@ -45,6 +45,8 @@ class CoursePageContentController extends Controller
             'heading' => 'nullable|string',
             'subheading' => 'nullable|string',
             'sidebar_heading' => 'nullable|string',
+            'testimonials_heading' => 'nullable|string',
+            'testimonials_subheading' => 'nullable|string',
             'meta_title' => 'nullable|string',
             'meta_description' => 'nullable|string',
             'meta_keywords' => 'nullable',
@@ -66,6 +68,8 @@ class CoursePageContentController extends Controller
             'heading' => 'required|string',
             'subheading' => 'required|string',
             'sidebar_heading' => 'required|string',
+            'testimonials_heading' => 'nullable|string',
+            'testimonials_subheading' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
@@ -84,6 +88,7 @@ class CoursePageContentController extends Controller
             if (!$content) {
                 $content = CoursePageContent::create($validated);
             } else {
+                // Update all fields including testimonials fields
                 $content->update($validated);
             }
 
