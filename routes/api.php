@@ -110,7 +110,10 @@ Route::get('/on-job-support-page', [OnJobSupportContentController::class, 'show'
 Route::get('/corporate-training', [CorporateTrainingController::class, 'show']);
 Route::get('/about-page', [AboutPageController::class, 'show']);
 Route::get('/contact-page', [ContactPageController::class, 'index']);
+
 Route::get('/interview-questions-page', [InterviewQuestionsPageContentController::class, 'show']);
+Route::get('/interview-questions/{slug}',[InterviewQuestionController::class, 'showBySlug']);
+
 Route::get('/seo', [SeoController::class, 'index']); // GET /api/seo or GET /api/seo?slug=:slug
 Route::get('/seo/{slug}', [SeoController::class, 'show']); // GET /api/seo/:slug
 Route::get('/blog-page', [BlogPageController::class, 'index']);
