@@ -50,6 +50,7 @@ use App\Http\Controllers\InstructorApplicationController;
 use App\Http\Controllers\InterviewQuestionCategoryController;
 use App\Http\Controllers\InterviewQuestionController;
 use App\Http\Controllers\InterviewQuestionsPageContentController;
+use App\Http\Controllers\TermsAndConditionsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -224,6 +225,17 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::put('/footer-settings/{id}', [FooterSettingsController::class, 'update']); // Update specific
     Route::patch('/footer-settings/{id}', [FooterSettingsController::class, 'update']);
     Route::delete('/footer-settings/{id}', [FooterSettingsController::class, 'destroy']);
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Terms and Conditions CRUD
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/terms-and-conditions', [TermsAndConditionsController::class, 'index']);
+    Route::put('/terms-and-conditions', [TermsAndConditionsController::class, 'update']);
+    Route::post('/terms-and-conditions', [TermsAndConditionsController::class, 'update']);
+
 
     /*
     |--------------------------------------------------------------------------
