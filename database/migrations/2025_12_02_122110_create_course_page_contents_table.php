@@ -23,9 +23,6 @@ return new class extends Migration
             $table->string('subheading');
             $table->string('sidebar_heading');
 
-            // Testimonials section fields
-            $table->string('testimonials_heading')->nullable();
-            $table->text('testimonials_subheading')->nullable();
 
             $table->timestamps();
         });
@@ -38,7 +35,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        
+
         Schema::dropIfExists('course_page_contents');
     }
 };
