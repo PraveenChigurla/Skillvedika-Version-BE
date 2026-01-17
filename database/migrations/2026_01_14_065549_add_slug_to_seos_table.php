@@ -9,7 +9,7 @@ return new class extends Migration {
     {
         Schema::table('seos', function (Blueprint $table) {
             if (!Schema::hasColumn('seos', 'slug')) {
-                $table->string('slug')->unique()->after('id');
+                $table->string('slug')->unique()->nullable(false)->after('id');
             }
         });
     }
@@ -18,8 +18,10 @@ return new class extends Migration {
     {
         Schema::table('seos', function (Blueprint $table) {
             if (Schema::hasColumn('seos', 'slug')) {
+                $table->dropUnique(['slug']);
                 $table->dropColumn('slug');
             }
         });
     }
 };
+

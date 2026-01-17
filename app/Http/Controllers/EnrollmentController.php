@@ -6,11 +6,12 @@ use App\Models\Enrollment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Http;
 
 class EnrollmentController extends Controller
 {
 
-    
+
     // Constants
     private const EMPTY_PLACEHOLDER = '(empty)';
     private const MAX_LIMIT = 100;
@@ -45,9 +46,9 @@ class EnrollmentController extends Controller
 
         $query->where(function ($q) use ($search) {
             $q->where('name', 'like', "%{$search}%")
-              ->orWhere('email', 'like', "%{$search}%")
-              ->orWhere('phone', 'like', "%{$search}%")
-              ->orWhere('message', 'like', "%{$search}%");
+                ->orWhere('email', 'like', "%{$search}%")
+                ->orWhere('phone', 'like', "%{$search}%")
+                ->orWhere('message', 'like', "%{$search}%");
 
             // Search course names: Get course IDs that match the search term
             $matchingCourseIds = \App\Models\Course::where('title', 'like', "%{$search}%")
@@ -58,7 +59,7 @@ class EnrollmentController extends Controller
                 // Search for enrollments where courses JSON array contains any matching course ID
                 foreach ($matchingCourseIds as $courseId) {
                     $q->orWhereJsonContains('courses', (int) $courseId)
-                      ->orWhereJsonContains('courses', (string) $courseId);
+                        ->orWhereJsonContains('courses', (string) $courseId);
                 }
             }
         });
@@ -90,7 +91,7 @@ class EnrollmentController extends Controller
             // Course ID filter - try both int and string representations
             $query->where(function ($q) use ($courseValue) {
                 $q->whereJsonContains('courses', (int) $courseValue)
-                  ->orWhereJsonContains('courses', (string) $courseValue);
+                    ->orWhereJsonContains('courses', (string) $courseValue);
             });
         } else {
             // Course name filter (if needed)
@@ -245,7 +246,7 @@ class EnrollmentController extends Controller
             $itemsOnPage = count($paginator->items());
 
             // CRITICAL: Log the actual item IDs being returned to verify pagination is working
-            $itemIds = array_map(function($item) {
+            $itemIds = array_map(function ($item) {
                 return $item->id ?? 'no-id';
             }, $paginator->items());
             $itemIdsPreview = $this->formatItemIdsPreview($itemIds);
@@ -290,7 +291,6 @@ class EnrollmentController extends Controller
             ]);
 
             return response()->json($response);
-
         } catch (\Throwable $e) {
             Log::error('[EnrollmentController] ERROR', [
                 'message' => $e->getMessage(),
@@ -312,33 +312,154 @@ class EnrollmentController extends Controller
         return Enrollment::findOrFail($id);
     }
 
+
     /**
      * POST /api/enroll (public)
      */
     public function store(Request $request)
     {
-        $data = $request->only([
-            'name',
-            'email',
-            'phone',
-            'courses'
+        /* ---------------------------------
+       1. BASIC VALIDATION
+    --------------------------------- */
+        $isFooter = $request->input('page') === 'footer';
+
+        $request->validate([
+            'name'    => $isFooter ? 'nullable|string' : 'required|string',
+            'email'   => 'required|email',
+            'phone'   => $isFooter ? 'nullable|string' : 'required|string',
+            'courses' => $isFooter ? 'nullable|array' : 'required|array',
+            'captcha_v3' => 'nullable|string',
+            'captcha_v2' => 'nullable|string',
         ]);
 
-        // Everything else -> meta
+
+        $env = app()->environment();
+        $v3Passed = false;
+        $v2Passed = false;
+
+        /* ---------------------------------
+       2. LOCAL ENV → AUTO PASS
+    --------------------------------- */
+        if ($env === 'local') {
+            $v3Passed = true;
+        }
+
+        /* ---------------------------------
+       3. TRY reCAPTCHA v3
+    --------------------------------- */
+        if (!$v3Passed && $request->filled('captcha_v3')) {
+            try {
+                $response = Http::asForm()->post(
+                    'https://www.google.com/recaptcha/api/siteverify',
+                    [
+                        'secret'   => config('services.recaptcha.v3_secret'),
+                        'response' => $request->captcha_v3,
+                        'remoteip' => $request->ip(),
+                    ]
+                );
+
+                $data = $response->json();
+
+                Log::info('[reCAPTCHA v3 RESULT]', $data);
+
+                $allowedActions = [
+                    'demo_form_submit',
+                    'contact_demo_submit',
+                    'blog_demo_submit',
+                    'home_demo_submit',
+                ];
+
+                $minScore = $env === 'production' ? 0.5 : 0.0;
+
+                if (
+                    ($data['success'] ?? false) === true &&
+                    ($data['score'] ?? 0) >= $minScore &&
+                    in_array($data['action'] ?? '', $allowedActions, true)
+                ) {
+                    $v3Passed = true;
+                } else {
+                    Log::warning('[reCAPTCHA v3 FAILED]', $data);
+                }
+            } catch (\Throwable $e) {
+                Log::error('[reCAPTCHA v3 ERROR]', [
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        /* ---------------------------------
+       4. FALLBACK TO reCAPTCHA v2
+    --------------------------------- */
+        if (!$v3Passed && $request->filled('captcha_v2')) {
+            try {
+                $response = Http::asForm()->post(
+                    'https://www.google.com/recaptcha/api/siteverify',
+                    [
+                        'secret'   => config('services.recaptcha.v2_secret'),
+                        'response' => $request->captcha_v2,
+                        'remoteip' => $request->ip(),
+                    ]
+                );
+
+                $data = $response->json();
+
+                if (($data['success'] ?? false) === true) {
+                    $v2Passed = true;
+                } else {
+                    Log::warning('[reCAPTCHA v2 FAILED]', $data);
+                }
+            } catch (\Throwable $e) {
+                Log::error('[reCAPTCHA v2 ERROR]', [
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        /* ---------------------------------
+       5. FINAL CAPTCHA DECISION
+    --------------------------------- */
+        if (!$isFooter && !$v3Passed && !$v2Passed) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Captcha verification failed',
+            ], 422);
+        }
+
+        /* ---------------------------------
+       6. SAVE ENROLLMENT
+    --------------------------------- */
+        $data = $request->only(['name', 'email', 'phone', 'courses']);
         $data['meta'] = $request->except([
             'name',
             'email',
             'phone',
-            'courses'
+            'courses',
+            'captcha_v3',
+            'captcha_v2',
         ]);
+
+
+        $data = $request->only(['name', 'email', 'phone', 'courses']);
+
+        if ($isFooter) {
+            $data['name'] = 'Footer Subscriber';
+            $data['phone'] = $data['phone'] ?? 'N/A';
+            $data['courses'] = [];
+        }
+
 
         $enrollment = Enrollment::create($data);
 
         return response()->json([
-            'success' => true,
-            'data'    => $enrollment,
+            'success'       => true,
+            'message'       => 'Enrollment submitted successfully',
+            'captcha_used'  => $v3Passed ? 'v3' : 'v2',
+            'data'          => $enrollment,
         ], 201);
     }
+
+
+
 
     /**
      * PUT /api/leads/{id}/status
@@ -406,7 +527,7 @@ class EnrollmentController extends Controller
 
         return response()->json([
             'success'     => true,
-            'deleted_ids'=> $request->ids,
+            'deleted_ids' => $request->ids,
         ]);
     }
 

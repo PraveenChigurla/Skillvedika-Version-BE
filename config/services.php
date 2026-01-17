@@ -31,4 +31,12 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    // config/services.php
+    'recaptcha' => [
+        'v3_secret' => env('RECAPTCHA_SECRET_V3'),
+        'v2_secret' => env('RECAPTCHA_SECRET_V2'),
+    ],
+
+
+
 ];

@@ -19,9 +19,11 @@ class TermsAndConditionsController extends Controller
             $query->where('type', $type);
         }
 
-        return response()->json(
-            $query->orderBy('updated_at', 'desc')->first()
-        );
+        return response()->json([
+            'success' => true,
+            'data' => $query->orderBy('updated_at', 'desc')->first()
+        ]);
+
     }
 
     // PUT / POST update

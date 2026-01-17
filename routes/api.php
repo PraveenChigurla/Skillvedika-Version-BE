@@ -153,6 +153,10 @@ Route::get('/faqs/{id}', [FaqController::class, 'show']);
 // Public Testimonials routes (read-only)
 Route::get('/testimonials', [App\Http\Controllers\TestimonialController::class, 'index']);
 
+// Public Terms and Conditions routes
+Route::get('/terms-and-conditions', [TermsAndConditionsController::class, 'index']);
+
+
 
 
 // Public Legal Documents routes (unified API for student, instructor, privacy)
